@@ -3,6 +3,3 @@ build:
 
 nodeinstall:
 	npm install --no-audit
-
-plugininstall:
-	npm install --save-dev serverless-prune-plugin serverless-plugin-tracing
