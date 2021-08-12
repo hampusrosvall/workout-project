@@ -1,0 +1,66 @@
+name: Main
+on:
+  push:
+    branches:
+      - someBranch
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.16.4'
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum', '**/go.mod', 'Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Build
+        run: make build
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ github.event_name != 'pull_request' }}
+        with:
+          name: bin
+          path: bin
+
+deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-20.04
+    needs:
+      - build
+    if: ${{ github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: bin
+          path: bin
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '15'
+
+      - name: Install SLS
+        run: make nodeinstall
+
+      - name: Install plugins
+        run: make plugininstall
+
+      - name: Make binaries executable
+        run: chmod 755 bin/*
+
+      - name: Serverless deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: npx serverless deploy --verbose

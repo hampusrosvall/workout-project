@@ -1,0 +1,20 @@
+service:
+  name: hr-apibackend
+
+provider:
+  name: aws
+  runtime: go1.x
+  region: eu-north-1
+  iamRoleStatements:
+    # TODO: enter policy for Lambda
+       
+        
+package:
+ exclude:
+   - ./**
+ include:
+   - ./bin/**
+
+functions:
+  apibackend:
+    handler: ./bin/api
